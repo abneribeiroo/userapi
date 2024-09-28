@@ -29,7 +29,7 @@ func (s *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	createdUser, err := s.db.CreateUser(User.Username, User.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	
@@ -50,14 +50,8 @@ func (s *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	getUser :=r.PathValue("id")
-	oneUser, err := s.db.GetUser(getUser)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(oneUser)
+	w.WriteHeader(http.StatusOK)
+	log.Printf("reveived request to get a User by ID \n")
 }
 
 func (s *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
