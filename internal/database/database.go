@@ -22,6 +22,7 @@ type Service interface {
 
 	// GetAllUsers returns a list of all users in the database.
     GetAllUsers() ([]User, error)
+    GetUser(username string) (User, error)
 	
 	CreateUser(username, email string) (User, error)
 	// Close terminates the database connection.
@@ -82,15 +83,42 @@ func(s *service) GetAllUsers() ([]User, error){
 	return users, nil
 }
 
-func (s *service) CreateUser(username, email string) (User, error){
-	var  user User
-	query := "INSERT INTO USERS (username, email) VALUES ($1, $2) RETURNING id, username, email"
-	err := s.db.QueryRow(query, username, email).Scan(&user.ID, &user.Username, &user.Email)
-	if err != nil {
+func(s *service) GetUser(username string) (User, error){
+
+	var user User
+	err := s.db.QueryRow("SELECT id, username, email FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.Email)
+
+	if err == sql.ErrNoRows {
+		return User{}, fmt.Errorf("user not found")
+	} else if err != nil{
 		return User{}, err
 	}
 	return user, nil
 }
+
+func (s *service) CreateUser(username, email string) (User, error){
+	var existingUser User
+
+	err := s.db.QueryRow("SELECT id, username email FROM users WHERE username = $1", username).Scan(&existingUser.Username, &existingUser.Email)
+
+	if err == nil {
+		return User{}, fmt.Errorf("user already exists")
+	} else if err != sql.ErrNoRows {
+		return User{}, err
+	}
+
+
+	var  newUser User
+	query := "INSERT INTO USERS (username, email) VALUES ($1, $2) RETURNING id, username, email"
+	err = s.db.QueryRow(query, username, email).Scan(&newUser.ID, &newUser.Username, &newUser.Email)
+	if err != nil {
+		return User{}, err
+	}
+	return newUser, nil
+}
+
+
+
 // Health checks the health of the database connection by pinging the database.
 // It returns a map with keys indicating various health statistics.
 func (s *service) Health() map[string]string {
