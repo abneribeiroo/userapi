@@ -22,7 +22,8 @@ type Service interface {
 
 	// GetAllUsers returns a list of all users in the database.
     GetAllUsers() ([]User, error)
-    GetUser(username string) (User, error)
+    GetUser(id int) (User, error)
+	DeleteUser(id int) (string, error)
 	
 	CreateUser(username, email string) (User, error)
 	// Close terminates the database connection.
@@ -83,10 +84,11 @@ func(s *service) GetAllUsers() ([]User, error){
 	return users, nil
 }
 
-func(s *service) GetUser(username string) (User, error){
+func(s *service) GetUser(id int) (User, error){
 
 	var user User
-	err := s.db.QueryRow("SELECT id, username, email FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.Email)
+
+	err := s.db.QueryRow("SELECT id, username, email FROM users WHERE id = $1", id).Scan(&user.ID, &user.Username, &user.Email)
 
 	if err == sql.ErrNoRows {
 		return User{}, fmt.Errorf("user not found")
@@ -96,17 +98,32 @@ func(s *service) GetUser(username string) (User, error){
 	return user, nil
 }
 
+func(s *service) DeleteUser(id int) (string, error) {
+	exists, err := s.userExists(id)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", fmt.Errorf("user does not exist")
+	}
+
+	query := "DELETE FROM users WHERE id = $1"
+	_, err = s.db.Exec(query, id)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("User with ID %d successfully deleted", id), nil
+}
+
 func (s *service) CreateUser(username, email string) (User, error){
-	var existingUser User
+	exists, err := s.usernameExists(username)
 
-	err := s.db.QueryRow("SELECT id, username email FROM users WHERE username = $1", username).Scan(&existingUser.Username, &existingUser.Email)
-
-	if err == nil {
+	if exists{
 		return User{}, fmt.Errorf("user already exists")
 	} else if err != sql.ErrNoRows {
 		return User{}, err
 	}
-
 
 	var  newUser User
 	query := "INSERT INTO USERS (username, email) VALUES ($1, $2) RETURNING id, username, email"
@@ -117,7 +134,27 @@ func (s *service) CreateUser(username, email string) (User, error){
 	return newUser, nil
 }
 
+func (s *service) userExists(id int) (bool, error) {
+	var userID int
+	err := s.db.QueryRow("SELECT id FROM users WHERE id = $1", id).Scan(&userID)
+	if err == sql.ErrNoRows {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
 
+func (s *service) usernameExists(username string) (bool, error) {
+	var id int
+	err := s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&id)
+	if err == sql.ErrNoRows {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
 
 // Health checks the health of the database connection by pinging the database.
 // It returns a map with keys indicating various health statistics.
