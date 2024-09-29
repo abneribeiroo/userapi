@@ -2,8 +2,9 @@ package server
 
 import (
 	"encoding/json"
-	"net/http"
 	"log"
+	"net/http"
+	"strconv"
 	"userApi/internal/database"
 )
 
@@ -50,12 +51,18 @@ func (s *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	getUser :=r.PathValue("id")
-	oneUser, err := s.db.GetUser(getUser)
+	id, err := strconv.Atoi(r.PathValue("id")) 
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	oneUser, err := s.db.GetUser(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(oneUser)
 }
@@ -66,9 +73,23 @@ func (s *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	msg, err := s.db.DeleteUser(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	log.Printf("reveived request to delete a User by ID \n")
+	json.NewEncoder(w).Encode(map[string]string{"message": msg})
 }
+
 
 func (s *Server) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
