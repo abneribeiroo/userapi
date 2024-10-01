@@ -67,9 +67,38 @@ func (s *Server) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(oneUser)
 }
 
+
 func (s *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
+	
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var User database.User
+
+
+	err = json.NewDecoder(r.Body).Decode(&User)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if User.Username == "" || User.Email == "" {
+		http.Error(w, "Name and email are required", http.StatusBadRequest)
+		return
+	}
+
+	resultMsg, err := s.db.UpdateUser(id, User.Username, User.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	log.Printf("reveived request to update a User by ID \n")
+	json.NewEncoder(w).Encode(map[string]string{"message": resultMsg})
 }
 
 func (s *Server) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
