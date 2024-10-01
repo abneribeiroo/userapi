@@ -24,7 +24,7 @@ type Service interface {
     GetAllUsers() ([]User, error)
     GetUser(id int) (User, error)
 	DeleteUser(id int) (string, error)
-	
+	UpdateUser(id int, newName string, newEmail string) (string, error)
 	CreateUser(username, email string) (User, error)
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
@@ -132,6 +132,27 @@ func (s *service) CreateUser(username, email string) (User, error){
 		return User{}, err
 	}
 	return newUser, nil
+}
+
+
+func (s *service) UpdateUser(id int, newName string, newEmail string) (string, error) {
+	// Verificar se o usuário existe
+	exists, err := s.userExists(id)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", fmt.Errorf("user does not exist")
+	}
+
+	// Query para atualizar o usuário
+	query := "UPDATE users SET username = $1, email = $2 WHERE id = $3"
+	_, err = s.db.Exec(query, newName, newEmail, id)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("User with ID %d successfully updated", id), nil
 }
 
 func (s *service) userExists(id int) (bool, error) {
