@@ -8,7 +8,6 @@ import (
 	"userApi/internal/database"
 )
 
-
 func (s *Server) homeHandler(w http.ResponseWriter, r *http.Request) {
 	resp := make(map[string]string)
 	resp["message"] = "Main Handler"
@@ -33,25 +32,25 @@ func (s *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(createdUser)
-	
+
 }
 
 func (s *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	
+
 	users, err := s.db.GetAllUsers()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)	
+	json.NewEncoder(w).Encode(users)
 }
 
 func (s *Server) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id")) 
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -67,9 +66,8 @@ func (s *Server) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(oneUser)
 }
 
-
 func (s *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-	
+
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -77,7 +75,6 @@ func (s *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var User database.User
-
 
 	err = json.NewDecoder(r.Body).Decode(&User)
 	if err != nil {
@@ -113,12 +110,11 @@ func (s *Server) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": msg})
 }
-
 
 func (s *Server) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
