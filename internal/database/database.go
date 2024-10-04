@@ -116,23 +116,27 @@ func(s *service) DeleteUser(id int) (string, error) {
 	return fmt.Sprintf("User with ID %d successfully deleted", id), nil
 }
 
-func (s *service) CreateUser(username, email string) (User, error){
+func (s *service) CreateUser(username, email string) (User, error) {
+	// Verificar se o username já existe
 	exists, err := s.usernameExists(username)
-
-	if exists{
-		return User{}, fmt.Errorf("user already exists")
-	} else if err != sql.ErrNoRows {
+	if err != nil {
 		return User{}, err
 	}
+	if exists {
+		return User{}, fmt.Errorf("user already exists")
+	}
 
-	var  newUser User
-	query := "INSERT INTO USERS (username, email) VALUES ($1, $2) RETURNING id, username, email"
+	// Inserir o novo usuário
+	var newUser User
+	query := "INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id, username, email"
 	err = s.db.QueryRow(query, username, email).Scan(&newUser.ID, &newUser.Username, &newUser.Email)
 	if err != nil {
 		return User{}, err
 	}
+
 	return newUser, nil
 }
+
 
 
 func (s *service) UpdateUser(id int, newName string, newEmail string) (string, error) {
